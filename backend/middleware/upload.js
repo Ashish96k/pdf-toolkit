@@ -1,5 +1,5 @@
-const path = require('path');
 const multer = require('multer');
+const { uploadsDir } = require('../config');
 
 const DEFAULT_MAX_BYTES = 50 * 1024 * 1024;
 
@@ -11,7 +11,7 @@ function parseMaxFileSize() {
 }
 
 const upload = multer({
-  dest: path.join(__dirname, '..', 'uploads'),
+  dest: uploadsDir,
   limits: { fileSize: parseMaxFileSize() },
   fileFilter: (_req, file, cb) => {
     if (file.mimetype === 'application/pdf') {

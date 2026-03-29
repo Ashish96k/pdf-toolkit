@@ -9,8 +9,9 @@ const { deleteAfterDelay } = require('../utils/cleanup');
 
 const execAsync = util.promisify(exec);
 
+const { uploadsDir } = require('../config');
+
 const router = express.Router();
-const uploadsDir = path.join(__dirname, '..', 'uploads');
 
 /** Ghostscript -dPDFSETTINGS values */
 const LEVEL_TO_SETTINGS = {

@@ -2,8 +2,9 @@ const path = require('path');
 const fs = require('fs');
 const express = require('express');
 
+const { uploadsDir } = require('../config');
+
 const router = express.Router();
-const uploadsDir = path.join(__dirname, '..', 'uploads');
 
 router.get('/:filename', (req, res) => {
   const filename = path.basename(req.params.filename);

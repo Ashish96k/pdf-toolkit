@@ -7,8 +7,9 @@ const { v4: uuidv4 } = require('uuid');
 const { upload } = require('../middleware/upload');
 const { deleteAfterDelay } = require('../utils/cleanup');
 
+const { uploadsDir } = require('../config');
+
 const router = express.Router();
-const uploadsDir = path.join(__dirname, '..', 'uploads');
 
 /**
  * @param {string} rangeStr

@@ -1,7 +1,5 @@
 require('dotenv').config();
 
-const fs = require('fs');
-const path = require('path');
 const express = require('express');
 const cors = require('cors');
 
@@ -12,11 +10,6 @@ const pdfToWordRouter = require('./routes/pdfToWord');
 const downloadRouter = require('./routes/download');
 
 const PORT = process.env.PORT || 5000;
-const uploadsDir = path.join(__dirname, 'uploads');
-
-if (!fs.existsSync(uploadsDir)) {
-  fs.mkdirSync(uploadsDir, { recursive: true });
-}
 
 const app = express();
 
@@ -55,6 +48,10 @@ app.use((err, _req, res, _next) => {
   res.status(status).json({ error: message });
 });
 
-app.listen(PORT, () => {
-  console.log(`Server listening on port ${PORT}`);
-});
+module.exports = app;
+
+if (require.main === module) {
+  app.listen(PORT, () => {
+    console.log(`Server listening on port ${PORT}`);
+  });
+}

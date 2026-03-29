@@ -9,8 +9,9 @@ const { deleteAfterDelay } = require('../utils/cleanup');
 
 const execFileAsync = util.promisify(execFile);
 
+const { uploadsDir } = require('../config');
+
 const router = express.Router();
-const uploadsDir = path.join(__dirname, '..', 'uploads');
 
 /** @type {string | null} */
 let libreOfficeCmd = null;

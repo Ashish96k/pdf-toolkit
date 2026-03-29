@@ -6,8 +6,9 @@ const { v4: uuidv4 } = require('uuid');
 const { upload } = require('../middleware/upload');
 const { deleteAfterDelay } = require('../utils/cleanup');
 
+const { uploadsDir } = require('../config');
+
 const router = express.Router();
-const uploadsDir = path.join(__dirname, '..', 'uploads');
 
 router.post('/', upload.array('files', 20), async (req, res, next) => {
   const files = req.files;
