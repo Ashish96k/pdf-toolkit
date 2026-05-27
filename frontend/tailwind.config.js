@@ -77,7 +77,7 @@ module.exports = {
         "badge-edit": "0 0 20px rgba(249,115,22,0.22)",
       },
       backdropBlur: {
-        glass: "20px",
+        glass: "8px",
         nav: "24px",
       },
       animation: {
@@ -85,7 +85,7 @@ module.exports = {
         "pulse-glow": "pulseGlow 2s ease-in-out infinite",
         progress: "progressShimmer 1.5s ease-in-out infinite",
         float: "float 6s ease-in-out infinite",
-        "fade-up": "fadeUp 0.4s ease-out forwards",
+        "fade-up": "fadeUp 0.4s ease-out both",
         "badge-dot": "badgeDot 0.28s ease-in-out infinite",
       },
       keyframes: {

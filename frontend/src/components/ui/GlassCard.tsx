@@ -1,6 +1,3 @@
-"use client";
-
-import { motion } from "framer-motion";
 import { cn } from "@/utils/cn";
 
 interface GlassCardProps {
@@ -23,21 +20,32 @@ export default function GlassCard({
   const base = variant === "red" ? "glass-card-red" : "glass-card";
 
   return (
-    <motion.div
-      initial={{ opacity: 0, y: 16 }}
-      animate={{ opacity: 1, y: 0 }}
-      transition={{ duration: 0.28, ease: "easeOut", delay }}
-      whileHover={hover ? { y: -4, transition: { duration: 0.2 } } : undefined}
+    <div
       onClick={onClick}
       className={cn(
         base,
-        hover &&
-          "cursor-pointer hover:shadow-card-hover hover:border-primary/20 transition-all duration-200",
+        "animate-fade-up",
+        hover && [
+          "group cursor-pointer",
+          "transition-[transform,border-color] duration-200 ease-out",
+          "hover:-translate-y-1 hover:border-primary/20",
+        ],
         onClick && "cursor-pointer",
         className
       )}
+      style={delay ? { animationDelay: `${delay}s` } : undefined}
     >
+      {hover ? (
+        <div
+          aria-hidden
+          className="pointer-events-none absolute inset-0 opacity-0 transition-opacity duration-200 group-hover:opacity-100"
+          style={{
+            background:
+              "radial-gradient(900px circle at 30% 20%, rgba(230,57,70,0.18) 0%, transparent 55%)",
+          }}
+        />
+      ) : null}
       {children}
-    </motion.div>
+    </div>
   );
 }

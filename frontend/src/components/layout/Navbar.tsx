@@ -19,8 +19,8 @@ export function Navbar() {
   }, [mobileOpen]);
 
   const headerBarClass = [
-    "w-full border-b border-[rgba(255,255,255,0.06)] bg-[rgba(8,0,16,0.6)] transition-[backdrop-filter,box-shadow] duration-300",
-    scrolled ? "backdrop-blur-[40px]" : "backdrop-blur-nav",
+    "w-full border-b border-[rgba(255,255,255,0.06)] bg-[rgba(8,0,16,0.6)] backdrop-blur-nav transition-[box-shadow] duration-300",
+    scrolled ? "backdrop-blur-[40px]" : "",
     scrolled &&
       "shadow-[0_1px_0_0_rgba(230,57,70,0.22),0_8px_32px_-8px_rgba(230,57,70,0.12)]",
   ]
