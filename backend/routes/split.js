@@ -5,7 +5,7 @@ const archiver = require('archiver');
 const { PDFDocument } = require('pdf-lib');
 const { v4: uuidv4 } = require('uuid');
 const { upload } = require('../middleware/upload');
-const { deleteAfterDelay } = require('../utils/cleanup');
+const { scheduleOutputDeletion } = require('../utils/cleanup');
 
 const { uploadsDir } = require('../config');
 
@@ -154,7 +154,7 @@ router.post('/', upload.single('file'), async (req, res, next) => {
       const diskName = `${uuidv4()}.pdf`;
       const outPath = path.join(uploadsDir, diskName);
       await fs.writeFile(outPath, bytes);
-      deleteAfterDelay(outPath);
+      scheduleOutputDeletion(outPath);
       outputs.push({ path: outPath, name: `page-${oneBased}.pdf` });
     }
 

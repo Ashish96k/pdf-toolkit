@@ -81,7 +81,7 @@ module.exports = {
         nav: "24px",
       },
       animation: {
-        blob: "blob 8s ease-in-out infinite",
+        blob: "blob 16s ease-in-out infinite",
         "pulse-glow": "pulseGlow 2s ease-in-out infinite",
         progress: "progressShimmer 1.5s ease-in-out infinite",
         float: "float 6s ease-in-out infinite",
@@ -90,9 +90,9 @@ module.exports = {
       },
       keyframes: {
         blob: {
-          "0%, 100%": { transform: "translate(0,0) scale(1)" },
-          "33%": { transform: "translate(20px,-20px) scale(1.05)" },
-          "66%": { transform: "translate(-15px,15px) scale(0.97)" },
+          "0%, 100%": { transform: "translate3d(0,0,0)" },
+          "33%": { transform: "translate3d(24px,-28px,0)" },
+          "66%": { transform: "translate3d(-18px,20px,0)" },
         },
         pulseGlow: {
           "0%, 100%": { boxShadow: "0 0 20px rgba(230,57,70,0.3)" },

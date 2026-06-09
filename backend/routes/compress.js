@@ -5,7 +5,7 @@ const util = require('util');
 const express = require('express');
 const { v4: uuidv4 } = require('uuid');
 const { upload } = require('../middleware/upload');
-const { deleteAfterDelay } = require('../utils/cleanup');
+const { scheduleOutputDeletion } = require('../utils/cleanup');
 
 const execAsync = util.promisify(exec);
 
@@ -69,7 +69,7 @@ router.post('/', upload.single('file'), async (req, res, next) => {
 
     await fs.unlink(inPath).catch(() => {});
 
-    deleteAfterDelay(outPath);
+    scheduleOutputDeletion(outPath);
 
     res.json({
       downloadUrl: `/api/download/${outName}`,

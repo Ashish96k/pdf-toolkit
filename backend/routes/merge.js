@@ -4,7 +4,7 @@ const express = require('express');
 const { PDFDocument } = require('pdf-lib');
 const { v4: uuidv4 } = require('uuid');
 const { upload } = require('../middleware/upload');
-const { deleteAfterDelay } = require('../utils/cleanup');
+const { scheduleOutputDeletion } = require('../utils/cleanup');
 
 const { uploadsDir } = require('../config');
 
@@ -14,6 +14,18 @@ router.post('/', upload.array('files', 20), async (req, res, next) => {
   const files = req.files;
   if (!files || files.length === 0) {
     res.status(400).json({ error: 'No PDF files provided (field name: files)' });
+    return;
+  }
+
+  if (files.length < 2) {
+    await Promise.all(
+      files.map((f) =>
+        fs.unlink(f.path).catch(() => {
+          /* ignore */
+        })
+      )
+    );
+    res.status(400).json({ error: 'At least 2 PDF files are required to merge' });
     return;
   }
 
@@ -40,7 +52,7 @@ router.post('/', upload.array('files', 20), async (req, res, next) => {
       )
     );
 
-    deleteAfterDelay(outPath);
+    scheduleOutputDeletion(outPath);
 
     res.json({ downloadUrl: `/api/download/${outName}` });
   } catch (err) {

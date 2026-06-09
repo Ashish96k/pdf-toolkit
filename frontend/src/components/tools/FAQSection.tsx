@@ -1,7 +1,6 @@
 "use client";
 
 import { useState } from "react";
-import { AnimatePresence, motion } from "framer-motion";
 import { ChevronDown } from "lucide-react";
 import { cn } from "@/utils/cn";
 
@@ -39,21 +38,18 @@ export function FAQSection({ items }: { items: FAQItem[] }) {
                 aria-hidden
               />
             </button>
-            <AnimatePresence initial={false}>
-              {isOpen ? (
-                <motion.div
-                  initial={{ height: 0, opacity: 0 }}
-                  animate={{ height: "auto", opacity: 1 }}
-                  exit={{ height: 0, opacity: 0 }}
-                  transition={{ duration: 0.28, ease: [0.4, 0, 0.2, 1] }}
-                  className="overflow-hidden"
-                >
-                  <p className="border-t border-white/[0.06] px-4 pb-4 pt-3 text-sm leading-relaxed text-text-secondary">
-                    {item.answer}
-                  </p>
-                </motion.div>
-              ) : null}
-            </AnimatePresence>
+            <div
+              className={cn(
+                "grid transition-[grid-template-rows] duration-300 ease-out motion-reduce:transition-none",
+                isOpen ? "grid-rows-[1fr]" : "grid-rows-[0fr]"
+              )}
+            >
+              <div className="overflow-hidden">
+                <p className="border-t border-white/[0.06] px-4 pb-4 pt-3 text-sm leading-relaxed text-text-secondary">
+                  {item.answer}
+                </p>
+              </div>
+            </div>
           </div>
         );
       })}

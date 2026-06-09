@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useRef } from "react";
+import { useCallback, useEffect, useRef } from "react";
 import api from "@/lib/axios";
 import { suggestedDocxFilename } from "@/lib/suggestedDocxFilename";
 import { useUploadStore } from "@/store/useUploadStore";
@@ -29,8 +29,14 @@ function resolveDownloadUrl(pathOrUrl: string): string {
   return pathOrUrl;
 }
 
+function getSessionExpiryMs() {
+  const fromEnv = Number(process.env.NEXT_PUBLIC_FILE_EXPIRY_MS);
+  return Number.isFinite(fromEnv) && fromEnv > 0 ? fromEnv : 3600000;
+}
+
 export function usePDFProcess() {
   const blobUrlRef = useRef<string | null>(null);
+  const downloadUrl = useUploadStore((s) => s.downloadUrl);
 
   const revokeBlobUrl = useCallback(() => {
     if (blobUrlRef.current) {
@@ -38,6 +44,17 @@ export function usePDFProcess() {
       blobUrlRef.current = null;
     }
   }, []);
+
+  useEffect(() => {
+    if (!downloadUrl) return;
+
+    const timer = setTimeout(() => {
+      revokeBlobUrl();
+      useUploadStore.getState().reset();
+    }, getSessionExpiryMs());
+
+    return () => clearTimeout(timer);
+  }, [downloadUrl, revokeBlobUrl]);
 
   const mergePDF = useCallback(
     async (files: File[]) => {
@@ -81,7 +98,7 @@ export function usePDFProcess() {
           };
           const url = json.url ?? json.downloadUrl;
           if (url) {
-            setDownloadUrl(url);
+            setDownloadUrl(resolveDownloadUrl(url));
           } else {
             useUploadStore.getState().setError("Invalid response from server");
           }
@@ -150,7 +167,7 @@ export function usePDFProcess() {
           };
           const url = json.url ?? json.downloadUrl;
           if (url) {
-            setDownloadUrl(url);
+            setDownloadUrl(resolveDownloadUrl(url));
             setDownloadFilename(null);
           } else {
             useUploadStore.getState().setError("Invalid response from server");
@@ -295,5 +312,15 @@ export function usePDFProcess() {
     [revokeBlobUrl]
   );
 
-  return { mergePDF, splitPDF, compressPDF, convertPDFToWord, revokeBlobUrl };
+  return {
+    mergePDF,
+    splitPDF,
+    compressPDF,
+    convertPDFToWord,
+    revokeBlobUrl,
+    resetToolSession: useCallback(() => {
+      revokeBlobUrl();
+      useUploadStore.getState().reset();
+    }, [revokeBlobUrl]),
+  };
 }

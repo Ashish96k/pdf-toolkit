@@ -33,9 +33,8 @@ export function PdfToWordClient() {
   const downloadUrl = useUploadStore((s) => s.downloadUrl);
   const downloadFilename = useUploadStore((s) => s.downloadFilename);
   const error = useUploadStore((s) => s.error);
-  const resetStore = useUploadStore((s) => s.reset);
 
-  const { convertPDFToWord, revokeBlobUrl } = usePDFProcess();
+  const { convertPDFToWord, resetToolSession } = usePDFProcess();
 
   const file = files[0] ?? null;
   const fileKey = file ? `${file.name}-${file.size}-${file.lastModified}` : "";
@@ -84,8 +83,7 @@ export function PdfToWordClient() {
   }, [file]);
 
   const handleReset = () => {
-    revokeBlobUrl();
-    resetStore();
+    resetToolSession();
   };
 
   const handleConvert = useCallback(async () => {

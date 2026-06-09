@@ -6,24 +6,39 @@ const { uploadsDir } = require('../config');
 
 const router = express.Router();
 
-router.get('/:filename', (req, res) => {
-  const filename = path.basename(req.params.filename);
+/**
+ * @param {string} rawFilename
+ * @returns {{ filename: string; filepath: string } | null}
+ */
+function resolveDownloadPath(rawFilename) {
+  const filename = path.basename(rawFilename);
   if (!filename || filename === '.' || filename === '..') {
-    res.status(400).json({ error: 'Invalid filename' });
-    return;
+    return null;
   }
 
   const filepath = path.join(uploadsDir, filename);
   if (!filepath.startsWith(uploadsDir)) {
+    return null;
+  }
+
+  return { filename, filepath };
+}
+
+router.get('/:filename', (req, res) => {
+  const resolved = resolveDownloadPath(req.params.filename);
+  if (!resolved) {
     res.status(400).json({ error: 'Invalid filename' });
     return;
   }
+
+  const { filename, filepath } = resolved;
 
   fs.access(filepath, fs.constants.F_OK, (err) => {
     if (err) {
       res.status(404).json({ error: 'File not found' });
       return;
     }
+
     res.download(filepath, filename, (downloadErr) => {
       if (downloadErr && !res.headersSent) {
         res.status(500).json({ error: 'Download failed' });

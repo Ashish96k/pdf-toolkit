@@ -36,9 +36,8 @@ export function CompressPDFClient() {
   const progress = useUploadStore((s) => s.progress);
   const downloadUrl = useUploadStore((s) => s.downloadUrl);
   const error = useUploadStore((s) => s.error);
-  const resetStore = useUploadStore((s) => s.reset);
 
-  const { compressPDF, revokeBlobUrl } = usePDFProcess();
+  const { compressPDF, resetToolSession } = usePDFProcess();
 
   const [level, setLevel] = useState<CompressionLevel>("medium");
   const [sizeDiff, setSizeDiff] = useState<{
@@ -57,9 +56,8 @@ export function CompressPDFClient() {
   }, [fileKey]);
 
   const handleReset = () => {
-    revokeBlobUrl();
     setSizeDiff(null);
-    resetStore();
+    resetToolSession();
   };
 
   const handleCompress = useCallback(async () => {

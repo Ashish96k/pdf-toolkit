@@ -6,6 +6,17 @@
   --scrollbar-thumb: rgba(230, 57, 70, 0.3);
 }
 
+/* Ambient blobs animate transform-only on their own GPU layer so scrolling
+   and the backdrop-blur glass surfaces above them stay smooth. */
+.blob-layer {
+  contain: strict;
+}
+.animate-blob {
+  will-change: transform;
+  transform: translateZ(0);
+  backface-visibility: hidden;
+}
+
 @media (prefers-reduced-motion: reduce) {
   .animate-blob,
   .animate-float,

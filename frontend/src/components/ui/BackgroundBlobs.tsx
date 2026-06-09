@@ -1,6 +1,6 @@
 export default function BackgroundBlobs() {
   return (
-    <div className="fixed inset-0 pointer-events-none overflow-hidden z-0">
+    <div className="blob-layer fixed inset-0 pointer-events-none overflow-hidden z-0">
       {/* Red blob top-right */}
       <div
         className="absolute -top-40 -right-20 w-[600px] h-[600px] animate-blob"

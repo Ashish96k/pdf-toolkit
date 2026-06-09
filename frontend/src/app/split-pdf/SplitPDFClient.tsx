@@ -43,9 +43,8 @@ export function SplitPDFClient() {
   const downloadUrl = useUploadStore((s) => s.downloadUrl);
   const downloadFilename = useUploadStore((s) => s.downloadFilename);
   const error = useUploadStore((s) => s.error);
-  const resetStore = useUploadStore((s) => s.reset);
 
-  const { splitPDF, revokeBlobUrl } = usePDFProcess();
+  const { splitPDF, resetToolSession } = usePDFProcess();
 
   const file = files[0] ?? null;
   const fileKey = file ? `${file.name}-${file.size}` : "";
@@ -104,8 +103,7 @@ export function SplitPDFClient() {
   }, [splitMode, rangeInput, pageCount]);
 
   const handleReset = () => {
-    revokeBlobUrl();
-    resetStore();
+    resetToolSession();
   };
 
   const handleSplit = () => {

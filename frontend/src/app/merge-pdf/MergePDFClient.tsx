@@ -24,9 +24,8 @@ export function MergePDFClient() {
   const progress = useUploadStore((s) => s.progress);
   const downloadUrl = useUploadStore((s) => s.downloadUrl);
   const error = useUploadStore((s) => s.error);
-  const resetStore = useUploadStore((s) => s.reset);
 
-  const { mergePDF, revokeBlobUrl } = usePDFProcess();
+  const { mergePDF, resetToolSession } = usePDFProcess();
 
   const onReorder = useCallback(
     (fromIndex: number, toIndex: number) => {
@@ -39,12 +38,13 @@ export function MergePDFClient() {
   );
 
   const handleReset = () => {
-    revokeBlobUrl();
-    resetStore();
+    resetToolSession();
   };
 
+  const canMerge = files.length >= 2 && !isProcessing;
+
   const handleMerge = () => {
-    if (files.length === 0 || isProcessing) return;
+    if (!canMerge) return;
     trackToolUsed("Merge PDF");
     void mergePDF(files);
   };
@@ -76,6 +76,15 @@ export function MergePDFClient() {
           />
         ) : null}
 
+        {files.length === 1 && !isProcessing && !downloadUrl ? (
+          <p
+            className="rounded-xl border border-white/[0.08] bg-white/[0.04] px-4 py-3 text-sm text-text-secondary"
+            role="status"
+          >
+            Add at least 2 PDF files to merge them into one document.
+          </p>
+        ) : null}
+
         {error ? (
           <p className="text-sm text-primary-light" role="alert">
             {error}
@@ -97,7 +106,7 @@ export function MergePDFClient() {
         <button
           type="button"
           onClick={handleMerge}
-          disabled={files.length === 0 || isProcessing}
+          disabled={!canMerge}
           className="w-full rounded-2xl bg-primary px-6 py-4 text-base font-semibold text-white shadow-card transition-colors hover:bg-primary-dark focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 focus-visible:ring-offset-[#080010] disabled:pointer-events-none disabled:opacity-40"
         >
           Merge PDF
