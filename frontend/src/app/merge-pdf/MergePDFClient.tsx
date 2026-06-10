@@ -1,6 +1,5 @@
 "use client";
 
-import { useCallback } from "react";
 import { Download, Layers, Upload } from "lucide-react";
 import { ToolPageLayout } from "@/components/tools/ToolPageLayout";
 import { DownloadButton } from "@/components/ui/DownloadButton";
@@ -26,16 +25,6 @@ export function MergePDFClient() {
   const error = useUploadStore((s) => s.error);
 
   const { mergePDF, resetToolSession } = usePDFProcess();
-
-  const onReorder = useCallback(
-    (fromIndex: number, toIndex: number) => {
-      const next = [...files];
-      const [moved] = next.splice(fromIndex, 1);
-      next.splice(toIndex, 0, moved);
-      setFiles(next);
-    },
-    [files, setFiles]
-  );
 
   const handleReset = () => {
     resetToolSession();
@@ -72,7 +61,7 @@ export function MergePDFClient() {
             files={files}
             onRemove={removeFile}
             reorderable
-            onReorder={onReorder}
+            onReorder={setFiles}
           />
         ) : null}
 
