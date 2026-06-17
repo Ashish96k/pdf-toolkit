@@ -1,10 +1,14 @@
-import axios, { AxiosError } from "axios";
+import axios, { AxiosError, InternalAxiosRequestConfig } from "axios";
 import { useUploadStore } from "@/store/useUploadStore";
 
 const baseURL =
   typeof process.env.NEXT_PUBLIC_API_URL === "string"
     ? process.env.NEXT_PUBLIC_API_URL.replace(/\/$/, "")
     : "";
+
+type ApiRequestConfig = InternalAxiosRequestConfig & {
+  skipGlobalError?: boolean;
+};
 
 export const api = axios.create({
   baseURL: baseURL || undefined,
@@ -44,8 +48,11 @@ function getErrorMessage(error: unknown): string {
 api.interceptors.response.use(
   (response) => response,
   (error) => {
-    const message = getErrorMessage(error);
-    useUploadStore.getState().setError(message);
+    const config = error.config as ApiRequestConfig | undefined;
+    if (!config?.skipGlobalError) {
+      const message = getErrorMessage(error);
+      useUploadStore.getState().setError(message);
+    }
     return Promise.reject(error);
   }
 );

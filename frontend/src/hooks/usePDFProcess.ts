@@ -12,8 +12,29 @@ export type SplitPDFOptions =
 
 export type CompressionLevel = "low" | "medium" | "high";
 
+export type CompressionRequest =
+  | { mode: "preset"; level: CompressionLevel }
+  | { mode: "custom"; strength: number };
+
+function appendCompressionToFormData(
+  formData: FormData,
+  request: CompressionRequest
+) {
+  if (request.mode === "custom") {
+    formData.append("level", "custom");
+    formData.append("strength", String(request.strength));
+    return;
+  }
+  formData.append("level", request.level);
+}
+
 export type CompressPDFResult = {
   downloadUrl: string;
+  originalSize: number;
+  compressedSize: number;
+};
+
+export type CompressPreviewResult = {
   originalSize: number;
   compressedSize: number;
 };
@@ -220,8 +241,28 @@ export function usePDFProcess() {
     [revokeBlobUrl]
   );
 
+  const previewCompressPDF = useCallback(
+    async (file: File, request: CompressionRequest) => {
+      const formData = new FormData();
+      formData.append("file", file);
+      appendCompressionToFormData(formData, request);
+
+      try {
+        const response = await api.post<CompressPreviewResult>(
+          "/api/compress/preview",
+          formData,
+          { skipGlobalError: true }
+        );
+        return response.data;
+      } catch {
+        return null;
+      }
+    },
+    []
+  );
+
   const compressPDF = useCallback(
-    async (file: File, level: CompressionLevel) => {
+    async (file: File, request: CompressionRequest) => {
       revokeBlobUrl();
 
       const {
@@ -240,7 +281,7 @@ export function usePDFProcess() {
 
       const formData = new FormData();
       formData.append("file", file);
-      formData.append("level", level);
+      appendCompressionToFormData(formData, request);
 
       try {
         const response = await api.post<{
@@ -343,6 +384,7 @@ export function usePDFProcess() {
     mergePDF,
     splitPDF,
     compressPDF,
+    previewCompressPDF,
     convertPDFToWord,
     revokeBlobUrl,
     resetToolSession: useCallback(() => {

@@ -1,52 +1,53 @@
 "use client";
 
-import { Check } from "lucide-react";
+import { Check, Loader2, Sparkles } from "lucide-react";
 import type { CompressionLevel } from "@/hooks/usePDFProcess";
+import {
+  COMPRESSION_OPTIONS,
+  getSizeChangePercent,
+  isOutputLargerThanOriginal,
+} from "@/utils/compressionLevels";
+import { formatFileSize } from "@/utils/formatFileSize";
 
 export type CompressionSelectorProps = {
-  value: CompressionLevel;
-  onChange: (level: CompressionLevel) => void;
+  selectedPreset: CompressionLevel | null;
+  onPresetSelect: (level: CompressionLevel) => void;
+  originalSize?: number;
+  previewSizes?: Partial<Record<CompressionLevel, number>>;
+  previewLoading?: boolean;
+  recommendedLevel?: CompressionLevel | null;
 };
 
-type Option = {
-  id: CompressionLevel;
-  title: string;
-  subtitle: string;
-  quality: string;
-  sizeHint: string;
-};
-
-const OPTIONS: Option[] = [
-  {
-    id: "low",
-    title: "Low compression",
-    subtitle: "Larger file, best quality",
-    quality: "Excellent — ideal for print and archival",
-    sizeHint: "Roughly 10–30% smaller (varies by PDF)",
-  },
-  {
-    id: "medium",
-    title: "Medium",
-    subtitle: "Balanced quality and size",
-    quality: "Very good — suitable for sharing and screens",
-    sizeHint: "Often 25–55% smaller (varies by PDF)",
-  },
-  {
-    id: "high",
-    title: "High compression",
-    subtitle: "Smallest file, lower quality",
-    quality: "Good — fine for quick sharing and preview",
-    sizeHint: "Often 40–75% smaller (varies by PDF)",
-  },
-];
-
-export function CompressionSelector({ value, onChange }: CompressionSelectorProps) {
+export function CompressionSelector({
+  selectedPreset,
+  onPresetSelect,
+  originalSize,
+  previewSizes,
+  previewLoading = false,
+  recommendedLevel = null,
+}: CompressionSelectorProps) {
   return (
     <fieldset className="space-y-3">
-      <legend className="section-label mb-3 text-left">Compression level</legend>
+      <legend className="section-label mb-1 text-left">Presets</legend>
+      <p className="mb-3 text-xs leading-relaxed text-text-muted">
+        Presets trade quality for file size. Best quality may rebuild the PDF and
+        make it larger.
+      </p>
       <div className="grid gap-3 sm:grid-cols-3">
-        {OPTIONS.map((opt) => {
-          const selected = value === opt.id;
+        {COMPRESSION_OPTIONS.map((opt) => {
+          const selected = selectedPreset === opt.id;
+          const outputSize = previewSizes?.[opt.id];
+          const isLoadingSize = previewLoading && outputSize == null;
+          const isRecommended = recommendedLevel === opt.id;
+          const outputLarger =
+            originalSize != null &&
+            outputSize != null &&
+            isOutputLargerThanOriginal(originalSize, outputSize);
+          const sizeChangePct =
+            originalSize != null && outputSize != null
+              ? getSizeChangePercent(originalSize, outputSize)
+              : null;
+
           return (
             <label
               key={opt.id}
@@ -62,7 +63,7 @@ export function CompressionSelector({ value, onChange }: CompressionSelectorProp
                 name="compression-level"
                 value={opt.id}
                 checked={selected}
-                onChange={() => onChange(opt.id)}
+                onChange={() => onPresetSelect(opt.id)}
                 className="sr-only"
               />
               {selected ? (
@@ -73,10 +74,58 @@ export function CompressionSelector({ value, onChange }: CompressionSelectorProp
                   <Check className="h-4 w-4" strokeWidth={2.5} />
                 </span>
               ) : null}
+              {isRecommended && !selected ? (
+                <span className="absolute right-3 top-3 inline-flex items-center gap-1 rounded-full bg-emerald-500/15 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-emerald-300">
+                  <Sparkles className="h-3 w-3" aria-hidden />
+                  Pick
+                </span>
+              ) : null}
+              {isRecommended && selected ? (
+                <span className="mb-2 inline-flex w-fit items-center gap-1 rounded-full bg-emerald-500/15 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-emerald-300">
+                  <Sparkles className="h-3 w-3" aria-hidden />
+                  Recommended
+                </span>
+              ) : null}
               <span className="pr-10 text-sm font-semibold text-white">{opt.title}</span>
               <span className="mt-1 text-xs text-text-secondary">{opt.subtitle}</span>
               <span className="mt-3 text-xs leading-relaxed text-text-muted">{opt.quality}</span>
-              <span className="mt-2 text-xs font-medium text-primary-light">{opt.sizeHint}</span>
+              {outputSize != null ? (
+                <div className="mt-2 space-y-1">
+                  <span
+                    className={[
+                      "block text-xs font-semibold tabular-nums",
+                      outputLarger ? "text-amber-200/95" : "text-primary-light",
+                    ].join(" ")}
+                  >
+                    Est. output: {formatFileSize(outputSize)}
+                  </span>
+                  {sizeChangePct != null && sizeChangePct > 0 ? (
+                    <span className="block text-xs text-emerald-300/90">
+                      About {sizeChangePct}% smaller
+                    </span>
+                  ) : sizeChangePct != null && sizeChangePct < 0 ? (
+                    <span className="block text-xs text-amber-200/90">
+                      About {Math.abs(sizeChangePct)}% larger than original
+                    </span>
+                  ) : sizeChangePct === 0 ? (
+                    <span className="block text-xs text-text-muted">
+                      Same size as original
+                    </span>
+                  ) : null}
+                  {outputLarger ? (
+                    <span className="block text-xs leading-relaxed text-amber-200/80">
+                      This preset prioritizes quality and may not reduce size.
+                    </span>
+                  ) : null}
+                </div>
+              ) : isLoadingSize ? (
+                <span className="mt-2 flex items-center gap-1.5 text-xs text-text-muted">
+                  <Loader2 className="h-3 w-3 animate-spin" aria-hidden />
+                  Estimating output size…
+                </span>
+              ) : (
+                <span className="mt-2 text-xs font-medium text-primary-light">{opt.sizeHint}</span>
+              )}
             </label>
           );
         })}
