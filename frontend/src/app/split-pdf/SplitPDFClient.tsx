@@ -13,7 +13,13 @@ import { UploadZone } from "@/components/ui/UploadZone";
 import { TOOL_PAGE_CONTENT } from "@/data/toolPageContent";
 import { usePDFProcess } from "@/hooks/usePDFProcess";
 import { trackToolUsed } from "@/lib/analytics";
-import { pagesToRangeString, parsePageRange } from "@/lib/pageRange";
+import {
+  buildRangePreviewRows,
+  createEmptyRangeSegment,
+  pagesToSegmentInputs,
+  type PageRangeSegmentInput,
+  validateRangeSegments,
+} from "@/lib/pageRange";
 import { useUploadStore } from "@/store/useUploadStore";
 
 const content = TOOL_PAGE_CONTENT["split-pdf"];
@@ -51,8 +57,9 @@ export function SplitPDFClient() {
 
   const [pageCount, setPageCount] = useState(0);
   const [splitMode, setSplitMode] = useState<PageRangeMode>("all");
-  const [rangeInput, setRangeInput] = useState("");
-  const [selectedPages, setSelectedPages] = useState<Set<number>>(new Set());
+  const [rangeSegments, setRangeSegments] = useState<PageRangeSegmentInput[]>([
+    createEmptyRangeSegment(),
+  ]);
 
   const prevFileKeyRef = useRef<string>("");
 
@@ -61,46 +68,42 @@ export function SplitPDFClient() {
     prevFileKeyRef.current = fileKey;
     setPageCount(0);
     setSplitMode("all");
-    setRangeInput("");
-    setSelectedPages(new Set());
+    setRangeSegments([createEmptyRangeSegment()]);
   }, [fileKey]);
 
   useEffect(() => {
     if (pageCount <= 0 || !file) return;
-    const all = new Set(Array.from({ length: pageCount }, (_, i) => i + 1));
-    setSelectedPages(all);
-    setRangeInput(pagesToRangeString(Array.from(all)));
+    const all = Array.from({ length: pageCount }, (_, i) => i + 1);
+    setRangeSegments(pagesToSegmentInputs(all));
   }, [pageCount, fileKey, file]);
 
   const handlePageCount = useCallback((n: number) => {
     setPageCount(n);
   }, []);
 
-  const handleRangeChange = useCallback(
-    (value: string) => {
-      setRangeInput(value);
-      const parsed = parsePageRange(value, pageCount > 0 ? pageCount : undefined);
-      if (parsed.ok) {
-        setSelectedPages(new Set(parsed.pages));
-      }
+  const handleSegmentsChange = useCallback(
+    (segments: PageRangeSegmentInput[]) => {
+      setRangeSegments(segments);
     },
-    [pageCount]
+    []
   );
 
-  const handleSelectionChange = useCallback((pages: Set<number>) => {
-    setSelectedPages(pages);
-    const sorted = Array.from(pages).sort((a, b) => a - b);
-    setRangeInput(pagesToRangeString(sorted));
-  }, []);
+  const rangePreviewRows = useMemo(() => {
+    if (splitMode !== "range") return null;
+    return buildRangePreviewRows(
+      rangeSegments,
+      pageCount > 0 ? pageCount : undefined
+    );
+  }, [splitMode, rangeSegments, pageCount]);
 
   const rangeSubmitOk = useMemo(() => {
     if (splitMode !== "range") return true;
-    const parsed = parsePageRange(
-      rangeInput.trim(),
+    const parsed = validateRangeSegments(
+      rangeSegments,
       pageCount > 0 ? pageCount : undefined
     );
     return parsed.ok && parsed.pages.length > 0;
-  }, [splitMode, rangeInput, pageCount]);
+  }, [splitMode, rangeSegments, pageCount]);
 
   const handleReset = () => {
     resetToolSession();
@@ -113,14 +116,13 @@ export function SplitPDFClient() {
       void splitPDF(file, { mode: "all" });
       return;
     }
-    const trimmed = rangeInput.trim();
-    const parsed = parsePageRange(
-      trimmed,
+    const parsed = validateRangeSegments(
+      rangeSegments,
       pageCount > 0 ? pageCount : undefined
     );
     if (!parsed.ok || parsed.pages.length === 0) return;
     trackToolUsed("Split PDF");
-    void splitPDF(file, { mode: "range", range: trimmed });
+    void splitPDF(file, { mode: "range", range: parsed.rangeString });
   };
 
   const canSplit =
@@ -132,7 +134,7 @@ export function SplitPDFClient() {
     <ToolPageLayout
       toolId="split-pdf"
       title="Split PDF online"
-      subtitle="Extract every page into its own file, or choose specific pages. Multiple pages download as a ZIP; a single page downloads as one PDF."
+      subtitle="Split every page into its own file with All pages, or add custom ranges—each range becomes one combined PDF. Multiple outputs download as a ZIP."
       howItWorksSteps={content.howToSteps.map((step, i) => ({
         ...step,
         icon: howIcons[i] ?? Upload,
@@ -154,8 +156,8 @@ export function SplitPDFClient() {
           <PageRangeInput
             mode={splitMode}
             onModeChange={setSplitMode}
-            value={rangeInput}
-            onChange={handleRangeChange}
+            segments={rangeSegments}
+            onSegmentsChange={handleSegmentsChange}
             pageCount={pageCount > 0 ? pageCount : undefined}
           />
         ) : null}
@@ -163,10 +165,9 @@ export function SplitPDFClient() {
         {file ? (
           <PageThumbnails
             file={file}
-            selectedPages={selectedPages}
-            onSelectionChange={handleSelectionChange}
             onPageCount={handlePageCount}
-            interactive={splitMode === "range"}
+            rangePreviewRows={rangePreviewRows}
+            interactive={false}
           />
         ) : null}
 

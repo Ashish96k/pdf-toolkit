@@ -18,6 +18,13 @@ export interface UploadState {
   reset: () => void;
 }
 
+const initialOutputState = {
+  downloadUrl: null as string | null,
+  downloadFilename: null as string | null,
+  progress: 0,
+  error: null as string | null,
+};
+
 export const useUploadStore = create<UploadState>((set) => ({
   files: [],
   isProcessing: false,
@@ -25,12 +32,16 @@ export const useUploadStore = create<UploadState>((set) => ({
   downloadUrl: null,
   downloadFilename: null,
   error: null,
-  setFiles: (files) => set({ files }),
+  setFiles: (files) => set({ files, ...initialOutputState }),
   addFiles: (files) =>
-    set((state) => ({ files: [...state.files, ...files] })),
+    set((state) => ({
+      files: [...state.files, ...files],
+      ...initialOutputState,
+    })),
   removeFile: (index) =>
     set((state) => ({
       files: state.files.filter((_, i) => i !== index),
+      ...initialOutputState,
     })),
   setProcessing: (isProcessing) => set({ isProcessing }),
   setProgress: (progress) =>

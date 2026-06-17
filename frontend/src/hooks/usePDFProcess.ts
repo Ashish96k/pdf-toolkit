@@ -1,7 +1,8 @@
 "use client";
 
-import { useCallback, useEffect, useRef } from "react";
+import { useCallback, useEffect, useMemo, useRef } from "react";
 import api from "@/lib/axios";
+import { discardServerDownload } from "@/lib/serverDownloadCleanup";
 import { suggestedDocxFilename } from "@/lib/suggestedDocxFilename";
 import { useUploadStore } from "@/store/useUploadStore";
 
@@ -37,6 +38,18 @@ function getSessionExpiryMs() {
 export function usePDFProcess() {
   const blobUrlRef = useRef<string | null>(null);
   const downloadUrl = useUploadStore((s) => s.downloadUrl);
+  const files = useUploadStore((s) => s.files);
+
+  const filesKey = useMemo(
+    () =>
+      files
+        .map((file) => `${file.name}:${file.size}:${file.lastModified}`)
+        .join("\0"),
+    [files]
+  );
+
+  const prevFilesKeyRef = useRef(filesKey);
+  const prevDownloadUrlRef = useRef<string | null>(null);
 
   const revokeBlobUrl = useCallback(() => {
     if (blobUrlRef.current) {
@@ -44,6 +57,20 @@ export function usePDFProcess() {
       blobUrlRef.current = null;
     }
   }, []);
+
+  useEffect(() => {
+    if (prevFilesKeyRef.current === filesKey) return;
+    prevFilesKeyRef.current = filesKey;
+    revokeBlobUrl();
+  }, [filesKey, revokeBlobUrl]);
+
+  useEffect(() => {
+    const prev = prevDownloadUrlRef.current;
+    if (prev && !downloadUrl) {
+      void discardServerDownload(prev);
+    }
+    prevDownloadUrlRef.current = downloadUrl;
+  }, [downloadUrl]);
 
   useEffect(() => {
     if (!downloadUrl) return;

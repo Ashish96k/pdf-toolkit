@@ -45,6 +45,28 @@ function scheduleOutputDeletion(filepath, delayMs = getExpiryMs()) {
   scheduledDeletions.set(filename, timeoutId);
 }
 
+/**
+ * Delete an output file immediately and cancel its scheduled expiry.
+ * @param {string} filepath
+ * @returns {Promise<void>}
+ */
+async function deleteOutputFile(filepath) {
+  const filename = path.basename(filepath);
+
+  cancelScheduledDeletion(filename);
+
+  try {
+    await fs.promises.unlink(filepath);
+    if (process.env.NODE_ENV !== 'production') {
+      console.log('[cleanup] deleted', filepath);
+    }
+  } catch (err) {
+    if (err && err.code !== 'ENOENT') {
+      throw err;
+    }
+  }
+}
+
 /** @deprecated Use scheduleOutputDeletion */
 function deleteAfterDelay(filepath, delayMs) {
   scheduleOutputDeletion(filepath, delayMs);
@@ -52,6 +74,7 @@ function deleteAfterDelay(filepath, delayMs) {
 
 module.exports = {
   scheduleOutputDeletion,
+  deleteOutputFile,
   deleteAfterDelay,
   getExpiryMs,
 };

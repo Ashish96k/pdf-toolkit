@@ -1,6 +1,7 @@
 const path = require('path');
 const fs = require('fs');
 const express = require('express');
+const { deleteOutputFile } = require('../utils/cleanup');
 
 const { uploadsDir } = require('../config');
 
@@ -45,6 +46,22 @@ router.get('/:filename', (req, res) => {
       }
     });
   });
+});
+
+router.delete('/:filename', async (req, res) => {
+  const resolved = resolveDownloadPath(req.params.filename);
+  if (!resolved) {
+    res.status(400).json({ error: 'Invalid filename' });
+    return;
+  }
+
+  try {
+    await deleteOutputFile(resolved.filepath);
+    res.status(204).send();
+  } catch (err) {
+    console.error('[download] cleanup failed', err);
+    res.status(500).json({ error: 'Cleanup failed' });
+  }
 });
 
 module.exports = router;

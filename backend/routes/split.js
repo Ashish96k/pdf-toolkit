@@ -12,11 +12,47 @@ const { uploadsDir } = require('../config');
 const router = express.Router();
 
 /**
+ * @param {string} part
+ * @returns {number[]}
+ */
+function parseRangeSegment(part) {
+  if (part.includes('-')) {
+    const [a, b] = part.split('-').map((x) => x.trim());
+    const start = Number(a);
+    const end = Number(b);
+    if (
+      !Number.isInteger(start) ||
+      !Number.isInteger(end) ||
+      start < 1 ||
+      end < 1 ||
+      start > end
+    ) {
+      const err = new Error(`Invalid range segment: "${part}"`);
+      err.status = 400;
+      throw err;
+    }
+    const pages = [];
+    for (let p = start; p <= end; p++) {
+      pages.push(p);
+    }
+    return pages;
+  }
+
+  const n = Number(part);
+  if (!Number.isInteger(n) || n < 1) {
+    const err = new Error(`Invalid page number: "${part}"`);
+    err.status = 400;
+    throw err;
+  }
+  return [n];
+}
+
+/**
  * @param {string} rangeStr
  * @param {number} pageCount
- * @returns {number[]} 1-based page numbers in range order, unique (first occurrence)
+ * @returns {number[][]} groups of 1-based page numbers; each group becomes one PDF
  */
-function parsePageRange(rangeStr, pageCount) {
+function parsePageRangeGroups(rangeStr, pageCount) {
   const s = String(rangeStr ?? '').trim();
   if (!s) {
     const err = new Error('Range is required for mode "range"');
@@ -25,66 +61,60 @@ function parsePageRange(rangeStr, pageCount) {
   }
 
   const parts = s.split(',');
-  /** @type {number[]} */
-  const ordered = [];
-  const seen = new Set();
+  /** @type {number[][]} */
+  const groups = [];
 
   for (const rawPart of parts) {
     const part = rawPart.trim();
     if (!part) continue;
-
-    if (part.includes('-')) {
-      const [a, b] = part.split('-').map((x) => x.trim());
-      const start = Number(a);
-      const end = Number(b);
-      if (
-        !Number.isInteger(start) ||
-        !Number.isInteger(end) ||
-        start < 1 ||
-        end < 1 ||
-        start > end
-      ) {
-        const err = new Error(`Invalid range segment: "${part}"`);
-        err.status = 400;
-        throw err;
-      }
-      for (let p = start; p <= end; p++) {
-        if (!seen.has(p)) {
-          seen.add(p);
-          ordered.push(p);
-        }
-      }
-    } else {
-      const n = Number(part);
-      if (!Number.isInteger(n) || n < 1) {
-        const err = new Error(`Invalid page number: "${part}"`);
-        err.status = 400;
-        throw err;
-      }
-      if (!seen.has(n)) {
-        seen.add(n);
-        ordered.push(n);
-      }
-    }
+    groups.push(parseRangeSegment(part));
   }
 
-  if (ordered.length === 0) {
+  if (groups.length === 0) {
     const err = new Error('No valid pages in range');
     err.status = 400;
     throw err;
   }
 
-  for (const p of ordered) {
-    if (p > pageCount) {
-      const err = new Error(
-        `Page ${p} is out of range (document has ${pageCount} page${pageCount === 1 ? '' : 's'})`
-      );
-      err.status = 400;
-      throw err;
+  for (const group of groups) {
+    for (const p of group) {
+      if (p > pageCount) {
+        const err = new Error(
+          `Page ${p} is out of range (document has ${pageCount} page${pageCount === 1 ? '' : 's'})`
+        );
+        err.status = 400;
+        throw err;
+      }
     }
   }
 
-  return ordered;
+  return groups;
+}
+
+/**
+ * @param {import('pdf-lib').PDFDocument} srcPdf
+ * @param {number[]} oneBasedPages
+ */
+async function createPdfFromPages(srcPdf, oneBasedPages) {
+  const outPdf = await PDFDocument.create();
+  const indices = oneBasedPages.map((page) => page - 1);
+  const copiedPages = await outPdf.copyPages(srcPdf, indices);
+  for (const page of copiedPages) {
+    outPdf.addPage(page);
+  }
+  return outPdf.save();
+}
+
+/**
+ * @param {number[]} pages
+ */
+function outputFilenameForGroup(pages) {
+  const first = pages[0];
+  const last = pages[pages.length - 1];
+  if (first === last) {
+    return `page-${first}.pdf`;
+  }
+  return `pages-${first}-${last}.pdf`;
 }
 
 router.post('/', upload.single('file'), async (req, res, next) => {
@@ -120,22 +150,18 @@ router.post('/', upload.single('file'), async (req, res, next) => {
       return;
     }
 
-    /** @type {number[]} */
-    let oneBasedPages;
+    /** @type {number[][]} */
+    let pageGroups;
     if (mode === 'all') {
-      oneBasedPages = Array.from({ length: pageCount }, (_, i) => i + 1);
+      pageGroups = Array.from({ length: pageCount }, (_, i) => [i + 1]);
     } else {
-      oneBasedPages = parsePageRange(String(rangeStr), pageCount);
+      pageGroups = parsePageRangeGroups(String(rangeStr), pageCount);
     }
 
     await fs.unlink(file.path).catch(() => {});
 
-    if (oneBasedPages.length === 1) {
-      const pageIndex = oneBasedPages[0] - 1;
-      const outPdf = await PDFDocument.create();
-      const [copied] = await outPdf.copyPages(srcPdf, [pageIndex]);
-      outPdf.addPage(copied);
-      const bytes = await outPdf.save();
+    if (pageGroups.length === 1) {
+      const bytes = await createPdfFromPages(srcPdf, pageGroups[0]);
       res.setHeader('Content-Type', 'application/pdf');
       res.setHeader('Content-Disposition', 'attachment; filename="split.pdf"');
       res.send(Buffer.from(bytes));
@@ -145,17 +171,13 @@ router.post('/', upload.single('file'), async (req, res, next) => {
     /** @type {{ path: string; name: string }[]} */
     const outputs = [];
 
-    for (const oneBased of oneBasedPages) {
-      const pageIndex = oneBased - 1;
-      const outPdf = await PDFDocument.create();
-      const [copied] = await outPdf.copyPages(srcPdf, [pageIndex]);
-      outPdf.addPage(copied);
-      const bytes = await outPdf.save();
+    for (const group of pageGroups) {
+      const bytes = await createPdfFromPages(srcPdf, group);
       const diskName = `${uuidv4()}.pdf`;
       const outPath = path.join(uploadsDir, diskName);
       await fs.writeFile(outPath, bytes);
       scheduleOutputDeletion(outPath);
-      outputs.push({ path: outPath, name: `page-${oneBased}.pdf` });
+      outputs.push({ path: outPath, name: outputFilenameForGroup(group) });
     }
 
     res.setHeader('Content-Type', 'application/zip');

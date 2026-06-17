@@ -67,7 +67,7 @@ export const TOOL_PAGE_CONTENT: Record<ToolPageId, ToolPageContent> = {
     meta: {
       title: "Split PDF Free Online — Extract Pages | PDF Toolkit",
       description:
-        "Split a PDF into separate pages or custom ranges. Download a ZIP or single-page PDF. Free, fast, and easy page extraction.",
+        "Split a PDF into separate pages or combined custom ranges. Download a ZIP or a single PDF. Free, fast, and easy page extraction.",
     },
     howToSteps: [
       {
@@ -78,7 +78,7 @@ export const TOOL_PAGE_CONTENT: Record<ToolPageId, ToolPageContent> = {
       {
         title: "Choose how to split",
         description:
-          "Use “All pages” for every page, or “Custom range” with text like 1-3, 5, 7-9—or tick pages in the grid.",
+          "Use “All pages” to extract every page as its own file, or “Custom range” to add from–to rows—each row becomes one combined PDF.",
       },
       {
         title: "Split & download",
@@ -100,12 +100,12 @@ export const TOOL_PAGE_CONTENT: Record<ToolPageId, ToolPageContent> = {
       {
         question: "How do I split a PDF by page range (e.g. pages 2–5)?",
         answer:
-          "Choose custom range mode and enter ranges like 2-5, or select individual pages in the thumbnail grid. Page numbers are 1-based and match your document order.",
+          "Choose custom range mode and add rows for each range (for example, pages 2–5 in one row and pages 8–10 in another). Each row becomes one combined PDF, with a grouped preview shown below.",
       },
       {
         question: "Why did I get a ZIP instead of one PDF after splitting?",
         answer:
-          "When the tool outputs more than one PDF, your browser downloads a single ZIP containing each file. One output stays a single PDF download.",
+          "With “All pages”, each page is its own PDF. With custom ranges, each range row is one combined PDF. When there is more than one output file, your browser downloads a ZIP. A single output stays one PDF download.",
       },
     ],
   },
